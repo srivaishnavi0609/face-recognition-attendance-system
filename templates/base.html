@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Student Attendance System{% endblock %}</title>
+    <!-- FontAwesome & Outfit Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <i class="fas fa-user-check"></i>
+                <span>AttendAI</span>
+            </div>
+            
+            <nav class="sidebar-menu">
+                <li>
+                    <a href="{{ url_for('dashboard') }}" class="sidebar-link {% if request.path == url_for('dashboard') %}active{% endif %}">
+                        <i class="fas fa-chart-pie"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('students') }}" class="sidebar-link {% if request.path == url_for('students') %}active{% endif %}">
+                        <i class="fas fa-users"></i>
+                        <span>Students</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('register_face_page') }}" class="sidebar-link {% if request.path == url_for('register_face_page') %}active{% endif %}">
+                        <i class="fas fa-camera"></i>
+                        <span>Enroll Face</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('attendance_scanner') }}" class="sidebar-link {% if request.path == url_for('attendance_scanner') %}active{% endif %}">
+                        <i class="fas fa-eye"></i>
+                        <span>Live Scanner</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('reports') }}" class="sidebar-link {% if request.path == url_for('reports') %}active{% endif %}">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                        <span>Reports</span>
+                    </a>
+                </li>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="theme-toggle" id="theme-toggle">
+                    <span>Light Mode</span>
+                    <i class="fas fa-sun"></i>
+                </div>
+                <a href="{{ url_for('logout') }}" class="sidebar-link mt-3 text-danger" style="margin-top: 15px; color: var(--danger);">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Log Out</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content Panel -->
+        <main class="main-content">
+            <header>
+                <div class="welcome-section">
+                    <h1>{% block header_title %}Dashboard{% endblock %}</h1>
+                    <p>{% block header_subtitle %}Welcome back, Professor!{% endblock %}</p>
+                </div>
+                
+                <div class="user-profile">
+                    <div class="user-info">
+                        <span class="name">{{ session.get('username', 'Teacher') }}</span>
+                        <span class="role">Administrator</span>
+                    </div>
+                    <div class="avatar">
+                        {{ session.get('username', 'T')[0].upper() }}
+                    </div>
+                </div>
+            </header>
+
+            <!-- Page Body Content -->
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <!-- Toast container for notifications -->
+    <div class="toast-container"></div>
+
+    <!-- Core Main JS Script -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    
+    <!-- Render server flashed messages inside premium JS Toast -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <script>
+          document.addEventListener('DOMContentLoaded', () => {
+            {% for category, message in messages %}
+              showToast("{{ message }}", "{{ 'error' if category in ['danger', 'error'] else 'success' if category == 'success' else 'info' }}");
+            {% endfor %}
+          });
+        </script>
+      {% endif %}
+    {% endwith %}
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>

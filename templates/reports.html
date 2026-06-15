@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}Attendance Reports - AttendAI{% endblock %}
+{% block header_title %}Attendance Reports{% endblock %}
+{% block header_subtitle %}Query, review, adjust, and download historical logs{% endblock %}
+
+{% block content %}
+<!-- Filter Controls -->
+<div class="glass-card" style="margin-bottom: 24px;">
+    <div class="chart-title">
+        <span>Report Filter Engine</span>
+        <i class="fas fa-search-plus text-secondary" style="color: var(--text-secondary);"></i>
+    </div>
+    
+    <form action="{{ url_for('reports') }}" method="GET" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) 120px; gap: 16px; align-items: end;">
+        <div class="form-group" style="margin-bottom: 0;">
+            <label for="start_date">Start Date</label>
+            <input type="date" id="start_date" name="start_date" class="form-control" value="{{ start_date or '' }}">
+        </div>
+        
+        <div class="form-group" style="margin-bottom: 0;">
+            <label for="end_date">End Date</label>
+            <input type="date" id="end_date" name="end_date" class="form-control" value="{{ end_date or '' }}">
+        </div>
+        
+        <div class="form-group" style="margin-bottom: 0;">
+            <label for="class_filter">Class / Dept</label>
+            <select id="class_filter" name="class_filter" class="form-control">
+                <option value="">All Classes</option>
+                {% for c in classes %}
+                <option value="{{ c }}" {% if class_filter == c %}selected{% endif %}>{{ c }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="form-group" style="margin-bottom: 0;">
+            <label for="student_id">Student ID / Name</label>
+            <input type="text" id="student_id" name="student_id" class="form-control" placeholder="Search ID or Name" value="{{ student_id or '' }}">
+        </div>
+        
+        <div style="display: flex; gap: 8px;">
+            <button type="submit" class="btn btn-primary" style="padding: 12px; flex-grow: 1;" title="Apply Filter">
+                <i class="fas fa-search"></i>
+            </button>
+            <a href="{{ url_for('reports') }}" class="btn btn-secondary" style="padding: 12px; background: rgba(239, 68, 68, 0.1); color: var(--danger);" title="Clear Filters">
+                <i class="fas fa-undo"></i>
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Export and Log list -->
+<div class="glass-card">
+    <div class="chart-title">
+        <span>Attendance Records ({{ logs|length }} entries matched)</span>
+        
+        {% if logs %}
+        <div style="display: flex; gap: 12px;">
+            <!-- CSV Download -->
+            <a href="{{ url_for('export_csv', start_date=start_date, end_date=end_date, student_id=student_id, class_filter=class_filter) }}" class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.85rem; background: rgba(20, 184, 166, 0.1); color: var(--secondary);">
+                <i class="fas fa-file-csv"></i> Export CSV
+            </a>
+            <!-- Excel Download -->
+            <a href="{{ url_for('export_excel', start_date=start_date, end_date=end_date, student_id=student_id, class_filter=class_filter) }}" class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.85rem; background: rgba(99, 102, 241, 0.1); color: var(--primary);">
+                <i class="fas fa-file-excel"></i> Export Excel
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Student ID</th>
+                    <th>Student Name</th>
+                    <th>Class / Sec</th>
+                    <th>Status</th>
+                    <th>Confidence</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if logs %}
+                    {% for log in logs %}
+                    <tr>
+                        <td><strong>{{ log.date }}</strong></td>
+                        <td>{{ log.time }}</td>
+                        <td>{{ log.student_id }}</td>
+                        <td>{{ log.name }}</td>
+                        <td>{{ log.class_name }} - {{ log.section }}</td>
+                        <td>
+                            <!-- Inline Auto-Save Status Dropdown -->
+                            <form action="{{ url_for('edit_attendance_status_route', attendance_id=log.attendance_id) }}" method="POST" style="display: inline-block;">
+                                <input type="hidden" name="start_date" value="{{ start_date or '' }}">
+                                <input type="hidden" name="end_date" value="{{ end_date or '' }}">
+                                <input type="hidden" name="class_filter" value="{{ class_filter or '' }}">
+                                <input type="hidden" name="student_id_search" value="{{ student_id or '' }}">
+                                
+                                <select name="status" onchange="this.form.submit()" class="form-control" style="width: 110px; padding: 4px 8px; font-size: 0.85rem; height: auto; display: inline-block; border-radius: 6px;">
+                                    <option value="Present" {% if log.status == 'Present' %}selected{% endif %}>Present</option>
+                                    <option value="Late" {% if log.status == 'Late' %}selected{% endif %}>Late</option>
+                                    <option value="Absent" {% if log.status == 'Absent' %}selected{% endif %}>Absent</option>
+                                </select>
+                            </form>
+                        </td>
+                        <td>
+                            {% if log.recognition_confidence %}
+                                {{ log.recognition_confidence }}%
+                            {% else %}
+                                100.0% (Manual)
+                            {% endif %}
+                        </td>
+                        <td>
+                            <!-- Delete log record -->
+                            <form action="{{ url_for('delete_attendance_route', attendance_id=log.attendance_id) }}" method="POST" onsubmit="return confirm('Delete this attendance record?');" style="display: inline-block;">
+                                <input type="hidden" name="start_date" value="{{ start_date or '' }}">
+                                <input type="hidden" name="end_date" value="{{ end_date or '' }}">
+                                <input type="hidden" name="class_filter" value="{{ class_filter or '' }}">
+                                <input type="hidden" name="student_id_search" value="{{ student_id or '' }}">
+                                
+                                <button type="submit" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem; background: rgba(239, 68, 68, 0.1); color: var(--danger);" title="Delete Entry">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="8" style="text-align: center; color: var(--text-secondary); padding: 50px;">
+                            <i class="fas fa-file-excel" style="font-size: 2.5rem; margin-bottom: 12px; display: block;"></i>
+                            No attendance logs matching search criteria.
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

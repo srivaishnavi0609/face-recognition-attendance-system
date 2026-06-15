@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}Live Scan Attendance - AttendAI{% endblock %}
+{% block header_title %}Live Face Scanner{% endblock %}
+{% block header_subtitle %}Automatically detect and record student attendance in real time{% endblock %}
+
+{% block content %}
+<!-- Engine Warning Banner if in Fallback Mode -->
+{% if not engine_native %}
+<div class="glass-card" style="border-color: var(--warning); background: rgba(245, 158, 11, 0.08); margin-bottom: 24px;">
+    <div style="display: flex; gap: 16px; align-items: flex-start;">
+        <i class="fas fa-exclamation-triangle" style="font-size: 1.5rem; color: var(--warning); margin-top: 2px;"></i>
+        <div>
+            <h4 style="color: var(--warning); font-weight: 600; margin-bottom: 4px;">Lightweight Live Mode (Simulation)</h4>
+            <p style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.5;">
+                In Fallback Mode, the camera detects faces and maps them to the first student enrolled in the directory for testing purposes. Speak synthesis is active.
+            </p>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="charts-grid" style="grid-template-columns: 1.2fr 1fr; gap: 24px; align-items: start;">
+    
+    <!-- Left: Webcam Live Stream -->
+    <div class="glass-card">
+        <div class="chart-title">
+            <span>Webcam Attendance Scanner</span>
+            <span style="color: var(--success); font-weight: 600;"><i class="fas fa-sync fa-spin"></i> Live Scanning</span>
+        </div>
+        
+        <div class="webcam-wrapper" style="margin-bottom: 20px;">
+            <div class="scan-radar"></div>
+            <!-- The streaming endpoint source -->
+            <img src="{{ url_for('video_feed') }}" id="webcam-feed" class="webcam-feed" style="transform: scaleX(-1);">
+        </div>
+
+        <div style="text-align: center; color: var(--text-secondary); font-size: 0.9rem;">
+            <p><i class="fas fa-info-circle"></i> Please ensure students stand one by one in front of the camera, looking directly forward.</p>
+        </div>
+    </div>
+
+    <!-- Right: Real-time scan log & Manual entry -->
+    <div style="display: flex; flex-direction: column; gap: 24px;">
+        
+        <!-- Live Scans Table -->
+        <div class="glass-card" style="max-height: 350px; overflow-y: auto;">
+            <div class="chart-title">
+                <span>Scanned Today</span>
+                <i class="fas fa-clock text-secondary" style="color: var(--text-secondary);"></i>
+            </div>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Class</th>
+                            <th>Time</th>
+                            <th>Status</th>
+                            <th>Conf</th>
+                        </tr>
+                    </thead>
+                    <tbody id="live-attendance-logs">
+                        {% if today_records %}
+                            {% for r in today_records %}
+                            <tr>
+                                <td><strong>{{ r.student_id }}</strong></td>
+                                <td>{{ r.name }}</td>
+                                <td>{{ r.class_name }} - {{ r.section }}</td>
+                                <td>{{ r.time }}</td>
+                                <td>
+                                    <span class="badge {% if r.status == 'Present' %}badge-present{% else %}badge-late{% endif %}">
+                                        {{ r.status }}
+                                    </span>
+                                </td>
+                                <td>{{ r.recognition_confidence }}%</td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <!-- Will be appended dynamically or show empty state -->
+                            <tr id="empty-table-msg">
+                                <td colspan="6" style="text-align: center; color: var(--text-secondary); padding: 40px;">
+                                    <i class="fas fa-user-circle" style="font-size: 2rem; margin-bottom: 8px; display: block;"></i>
+                                    Waiting for live scans...
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Manual Correction Panel -->
+        <div class="glass-card">
+            <div class="chart-title">
+                <span>Manual Attendance Entry</span>
+            </div>
+
+            <form action="{{ url_for('manual_attendance_route') }}" method="POST">
+                <div class="form-group">
+                    <label for="student_id">Select Student</label>
+                    <select name="student_id" class="form-control" required>
+                        <option value="">-- Choose Student --</option>
+                        {% for s in students %}
+                        <option value="{{ s.student_id }}">{{ s.student_id }} - {{ s.name }} ({{ s.class_name }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div class="form-group">
+                        <label for="status">Status</label>
+                        <select name="status" class="form-control">
+                            <option value="Present">Present</option>
+                            <option value="Late">Late</option>
+                            <option value="Absent">Absent</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="date">Date</label>
+                        <input type="date" name="date" class="form-control" value="{{ today_date }}" required>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-secondary" style="width: 100%; margin-top: 10px; background: rgba(20, 184, 166, 0.1); color: var(--secondary);">
+                    <i class="fas fa-check"></i> Submit Record Manually
+                </button>
+            </form>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/face_recognize.js') }}"></script>
+<script>
+    // Remove the placeholder row if new elements are appended by JS
+    document.addEventListener('DOMContentLoaded', () => {
+        const observer = new MutationObserver((mutations) => {
+            const emptyMsg = document.getElementById('empty-table-msg');
+            if (emptyMsg && document.getElementById('live-attendance-logs').children.length > 1) {
+                emptyMsg.remove();
+            }
+        });
+        
+        const target = document.getElementById('live-attendance-logs');
+        if (target) {
+            observer.observe(target, { childList: true });
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - AttendAI{% endblock %}
+{% block header_title %}Analytics Dashboard{% endblock %}
+{% block header_subtitle %}Overview of attendance metrics and AI logs{% endblock %}
+
+{% block content %}
+<!-- Engine Warning Banner if in Fallback Mode -->
+{% if not engine_native %}
+<div class="glass-card" style="border-color: var(--warning); background: rgba(245, 158, 11, 0.08); margin-bottom: 24px;">
+    <div style="display: flex; gap: 16px; align-items: flex-start;">
+        <i class="fas fa-exclamation-triangle" style="font-size: 1.5rem; color: var(--warning); margin-top: 2px;"></i>
+        <div>
+            <h4 style="color: var(--warning); font-weight: 600; margin-bottom: 4px;">Running in Fallback Mode (OpenCV Cascades)</h4>
+            <p style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.5;">
+                The high-fidelity <strong>face_recognition (dlib)</strong> engine is missing or couldn't load. The system is operating in a lightweight detection mode. Enrolled faces will use mock encodings and the live scanner will detect faces but match using a demo simulation.
+            </p>
+            <div style="margin-top: 10px; font-size: 0.85rem; font-weight: 500;">
+                <code style="background: rgba(0,0,0,0.3); padding: 4px 8px; border-radius: 4px; color: #fff;">pip install cmake face_recognition</code>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Stats Cards Grid -->
+<div class="card-grid">
+    <div class="glass-card">
+        <div class="card-icon primary">
+            <i class="fas fa-users-viewfinder"></i>
+        </div>
+        <h3>Total Students</h3>
+        <div class="card-value">{{ stats.total_students }}</div>
+    </div>
+    
+    <div class="glass-card">
+        <div class="card-icon secondary">
+            <i class="fas fa-percentage"></i>
+        </div>
+        <h3>Attendance Rate (Today)</h3>
+        <div class="card-value">{{ stats.attendance_rate }}%</div>
+    </div>
+
+    <div class="glass-card">
+        <div class="card-icon danger">
+            <i class="fas fa-fingerprint"></i>
+        </div>
+        <h3>Scans Today</h3>
+        <div class="card-value">{{ stats.marked_today }}</div>
+    </div>
+
+    <div class="glass-card">
+        <div class="card-icon" style="background: {% if engine_native %}rgba(16, 185, 129, 0.15){% else %}rgba(245, 158, 11, 0.15){% endif %}; color: {% if engine_native %}var(--success){% else %}var(--warning){% endif %};">
+            <i class="fas fa-bolt"></i>
+        </div>
+        <h3>AI Engine Status</h3>
+        <div class="card-value" style="font-size: 1.5rem; margin-top: 8px;">
+            {% if engine_native %}
+            <span style="color: var(--success); font-weight: 600;"><i class="fas fa-check-circle"></i> Active</span>
+            {% else %}
+            <span style="color: var(--warning); font-weight: 600;"><i class="fas fa-triangle-exclamation"></i> Fallback</span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Charts Grid -->
+<div class="charts-grid">
+    <!-- Weekly trend chart -->
+    <div class="glass-card">
+        <div class="chart-title">
+            <span>Weekly Attendance Trend</span>
+            <i class="fas fa-chart-line text-secondary" style="color: var(--text-secondary);"></i>
+        </div>
+        <div style="height: 300px;">
+            <canvas id="weeklyTrendChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Status Ratio (Doughnut) -->
+    <div class="glass-card">
+        <div class="chart-title">
+            <span>Today's Ratios</span>
+            <i class="fas fa-chart-pie text-secondary" style="color: var(--text-secondary);"></i>
+        </div>
+        <div style="height: 300px;">
+            <canvas id="statusRatioChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="charts-grid" style="grid-template-columns: 1fr 1fr;">
+    <!-- Class performance chart -->
+    <div class="glass-card">
+        <div class="chart-title">
+            <span>Class Performance Rate</span>
+            <i class="fas fa-chart-bar text-secondary" style="color: var(--text-secondary);"></i>
+        </div>
+        <div style="height: 300px;">
+            <canvas id="classRatesChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Recent live scans activity -->
+    <div class="glass-card">
+        <div class="chart-title">
+            <span>Latest Activity (Today)</span>
+            <i class="fas fa-bell text-secondary" style="color: var(--text-secondary); animation: pulse 2s infinite;"></i>
+        </div>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Student</th>
+                        <th>Class</th>
+                        <th>Scan Time</th>
+                        <th>Confidence</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if stats.recent_scans %}
+                        {% for scan in stats.recent_scans %}
+                        <tr>
+                            <td><strong>{{ scan.name }}</strong></td>
+                            <td>{{ scan.class_name }}</td>
+                            <td>{{ scan.time }}</td>
+                            <td>
+                                <span class="badge {% if scan.status == 'Present' %}badge-present{% else %}badge-late{% endif %}">
+                                    {{ scan.recognition_confidence }}%
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="4" style="text-align: center; color: var(--text-secondary); padding: 40px;">
+                                <i class="fas fa-history" style="font-size: 2rem; margin-bottom: 12px; display: block;"></i>
+                                No scans recorded yet today.
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

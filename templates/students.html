@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+
+{% block title %}Student Directory - AttendAI{% endblock %}
+{% block header_title %}Student Directory{% endblock %}
+{% block header_subtitle %}Manage student records and face registrations{% endblock %}
+
+{% block content %}
+<div class="charts-grid" style="grid-template-columns: 2fr 1fr; gap: 24px; align-items: start;">
+    
+    <!-- Student List Panel -->
+    <div class="glass-card">
+        <div class="chart-title">
+            <span>All Registered Students</span>
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <form action="{{ url_for('students') }}" method="GET" style="display: flex; gap: 8px;">
+                    <input type="text" name="search" class="form-control" style="width: 180px; padding: 8px 12px;" placeholder="Search..." value="{{ search_query or '' }}">
+                    <select name="class_filter" class="form-control" style="width: 140px; padding: 8px 12px;">
+                        <option value="">All Classes</option>
+                        {% for c in classes %}
+                        <option value="{{ c }}" {% if class_filter == c %}selected{% endif %}>{{ c }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn btn-secondary" style="padding: 8px 16px;">
+                        <i class="fas fa-filter"></i>
+                    </button>
+                    {% if search_query or class_filter %}
+                    <a href="{{ url_for('students') }}" class="btn btn-secondary" style="padding: 8px 16px; background: rgba(239, 68, 68, 0.1); color: var(--danger);">
+                        <i class="fas fa-times"></i>
+                    </a>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Face Preview</th>
+                        <th>Student ID</th>
+                        <th>Name</th>
+                        <th>Class & Sec</th>
+                        <th>Contact</th>
+                        <th>AI Enrolled</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if students %}
+                        {% for s in students %}
+                        <tr>
+                            <td>
+                                {% if s.image_path %}
+                                <img src="{{ url_for('static', filename=s.image_path) }}" alt="{{ s.name }}" style="width: 50px; height: 50px; border-radius: 10px; object-fit: cover; border: 1.5px solid var(--primary-light);">
+                                {% else %}
+                                <div style="width: 50px; height: 50px; border-radius: 10px; background: var(--card-border); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: var(--text-secondary);">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td><strong>{{ s.student_id }}</strong></td>
+                            <td>{{ s.name }}</td>
+                            <td>{{ s.class_name }} - {{ s.section }}</td>
+                            <td>
+                                <span style="display: block; font-size: 0.85rem;">{{ s.email or 'N/A' }}</span>
+                                <span style="display: block; font-size: 0.8rem; color: var(--text-secondary);">{{ s.phone or 'N/A' }}</span>
+                            </td>
+                            <td>
+                                {% if s.face_encoding %}
+                                <span class="badge badge-present" title="Face model fully registered"><i class="fas fa-check-circle"></i> Ready</span>
+                                {% else %}
+                                <span class="badge badge-absent" title="Requires face scan before marking automatically"><i class="fas fa-times-circle"></i> Missing</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div style="display: flex; gap: 8px;">
+                                    <a href="{{ url_for('register_face_page') }}?student_id={{ s.student_id }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem; background: var(--primary-light); color: var(--primary);" title="Enroll Face Encodings">
+                                        <i class="fas fa-camera"></i>
+                                    </a>
+                                    <button class="btn btn-secondary edit-student-btn" style="padding: 6px 12px; font-size: 0.8rem;" 
+                                            data-id="{{ s.student_id }}" 
+                                            data-name="{{ s.name }}" 
+                                            data-class="{{ s.class_name }}" 
+                                            data-section="{{ s.section }}" 
+                                            data-email="{{ s.email or '' }}" 
+                                            data-phone="{{ s.phone or '' }}"
+                                            title="Edit Details">
+                                        <i class="fas fa-pencil-alt"></i>
+                                    </button>
+                                    <form action="{{ url_for('delete_student_route', student_id=s.student_id) }}" method="POST" onsubmit="return confirm('Delete {{ s.name }}? All attendance records will be removed.');" style="display: inline;">
+                                        <button type="submit" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem; background: rgba(239, 68, 68, 0.1); color: var(--danger);" title="Delete Profile">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 50px;">
+                                <i class="fas fa-users-slash" style="font-size: 2.5rem; margin-bottom: 12px; display: block;"></i>
+                                No student records found.
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Actions/Add Panel -->
+    <div class="glass-card" id="form-panel">
+        <div class="chart-title">
+            <span id="form-title">Register New Student</span>
+            <button id="cancel-edit-btn" class="btn btn-secondary" style="display: none; padding: 4px 8px; font-size: 0.8rem;">
+                Clear
+            </button>
+        </div>
+
+        <form action="{{ url_for('add_student_route') }}" method="POST" id="student-form">
+            <div class="form-group">
+                <label for="student_id_input">Student ID / Roll No</label>
+                <input type="text" id="student_id_input" name="student_id" class="form-control" required placeholder="e.g. STU10029">
+            </div>
+            
+            <div class="form-group">
+                <label for="name_input">Full Name</label>
+                <input type="text" id="name_input" name="name" class="form-control" required placeholder="e.g. Liam Anderson">
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="form-group">
+                    <label for="class_input">Class/Department</label>
+                    <input type="text" id="class_input" name="class_name" class="form-control" required placeholder="e.g. CS-4A">
+                </div>
+                <div class="form-group">
+                    <label for="section_input">Section</label>
+                    <input type="text" id="section_input" name="section" class="form-control" required placeholder="e.g. A">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="email_input">Email Address</label>
+                <input type="email" id="email_input" name="email" class="form-control" placeholder="e.g. liam@example.com">
+            </div>
+
+            <div class="form-group">
+                <label for="phone_input">Phone Number</label>
+                <input type="text" id="phone_input" name="phone" class="form-control" placeholder="e.g. +1234567890">
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;" id="submit-form-btn">
+                <i class="fas fa-save"></i> Save Student Profile
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const editButtons = document.querySelectorAll('.edit-student-btn');
+        const formPanel = document.getElementById('form-panel');
+        const studentForm = document.getElementById('student-form');
+        const formTitle = document.getElementById('form-title');
+        const submitBtn = document.getElementById('submit-form-btn');
+        const cancelBtn = document.getElementById('cancel-edit-btn');
+        
+        const idInput = document.getElementById('student_id_input');
+        const nameInput = document.getElementById('name_input');
+        const classInput = document.getElementById('class_input');
+        const sectionInput = document.getElementById('section_input');
+        const emailInput = document.getElementById('email_input');
+        const phoneInput = document.getElementById('phone_input');
+
+        editButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const id = btn.getAttribute('data-id');
+                const name = btn.getAttribute('data-name');
+                const className = btn.getAttribute('data-class');
+                const section = btn.getAttribute('data-section');
+                const email = btn.getAttribute('data-email');
+                const phone = btn.getAttribute('data-phone');
+
+                // Switch form to edit mode
+                formTitle.textContent = "Edit Student Profile";
+                idInput.value = id;
+                idInput.readOnly = true; // Cannot edit ID directly
+                nameInput.value = name;
+                classInput.value = className;
+                sectionInput.value = section;
+                emailInput.value = email;
+                phoneInput.value = phone;
+
+                studentForm.action = `/students/edit/${id}`;
+                submitBtn.innerHTML = '<i class="fas fa-edit"></i> Update Student Details';
+                cancelBtn.style.display = 'inline-block';
+                
+                // Scroll to form panel on small screens
+                formPanel.scrollIntoView({ behavior: 'smooth' });
+            });
+        });
+
+        cancelBtn.addEventListener('click', () => {
+            // Reset to Add Mode
+            formTitle.textContent = "Register New Student";
+            studentForm.reset();
+            idInput.readOnly = false;
+            studentForm.action = "{{ url_for('add_student_route') }}";
+            submitBtn.innerHTML = '<i class="fas fa-save"></i> Save Student Profile';
+            cancelBtn.style.display = 'none';
+        });
+    });
+</script>
+{% endblock %}
