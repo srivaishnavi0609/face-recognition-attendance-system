@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # AttendAI: Student Attendance Management System
 
 AttendAI is a complete, production-ready **Student Attendance Management System** powered by a secure Python (Flask) backend, a high-fidelity SQLite database, and an OpenCV/Deep Learning Face Recognition engine. It features a modern, responsive Glassmorphic dashboard with dark mode and voice assistance.
@@ -104,3 +105,7 @@ By default, the application runs in **Fallback Mode** using OpenCV Haar Cascades
 * **SQL Injection Shield**: Every database interaction uses SQL parameter bindings.
 * **XSS & CSRF Safe**: Templates use Jinja2 escaping; sessions are signed with encrypted cookies.
 * **Glassmorphic Cyber-Dark Palette**: Colors include deep slate base gradients, indigo focus highlights, teal secondary alerts, and custom backdrop blur containers that adapt dynamically.
+=======
+# face-recognition-attendance-system
+AI-powered attendance management system using Flask, OpenCV, face recognition, and SQLite for automated student attendance tracking and reporting.
+>>>>>>> 7646b5fe4dd667c6f4922b1a5e847f273c0bc114
