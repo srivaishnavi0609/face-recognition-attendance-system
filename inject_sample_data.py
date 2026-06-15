@@ -11,7 +11,7 @@ def inject():
     dummy_encoding = [0.0] * 128
     
     students = [
-        ("STU101", "Emily Watson", "CS-4A", "A", "emily@college.edu", "+15550101", dummy_encoding),
+        ("STU101", "Abi", "CS-4A", "A", "abi@college.com", "+15550101", dummy_encoding),
         ("STU102", "Marcus Vance", "CS-4A", "A", "marcus@college.edu", "+15550102", dummy_encoding),
         ("STU103", "Chloe Chen", "CS-4B", "B", "chloe@college.edu", "+15550103", None), # Missing face
         ("STU104", "David Miller", "EE-2C", "C", "david@college.edu", "+15550104", dummy_encoding),
