@@ -1,7 +1,7 @@
 <<<<<<< HEAD
-# AttendAI: Student Attendance Management System
+Student Attendance Management System
 
-AttendAI is a complete, production-ready **Student Attendance Management System** powered by a secure Python (Flask) backend, a high-fidelity SQLite database, and an OpenCV/Deep Learning Face Recognition engine. It features a modern, responsive Glassmorphic dashboard with dark mode and voice assistance.
+Student Attendance Management System powered by a secure Python (Flask) backend, a high-fidelity SQLite database, and an OpenCV/Deep Learning Face Recognition engine. It features a modern, responsive Glassmorphic dashboard with dark mode and voice assistance.
 
 ---
 
